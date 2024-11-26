@@ -1,0 +1,255 @@
+<html>
+<head>
+    <title>Final project question test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Create a container for the 6-inch by 6-inch square */
+        .container {
+            position: relative;
+            width: 576px;  /* 6 inches in pixels (6 * 96px) */
+            height: 576px; /* 6 inches in pixels (6 * 96px) */
+            background-color: #fff;
+            border: 2px solid black;
+        }
+
+        .hitbox {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: black; /* Default color is black */
+            border: 2px solid black;
+        }
+
+        .hitbox.green {
+            background-color: green; /* Green color when hitbox is activated */
+        }
+
+        .hitbox.red {
+            background-color: red; /* Red color for incorrect hitbox */
+        }
+
+        .movable-object {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: blue;
+            border-radius: 50%;
+        }
+
+        .text-box {
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+            color: black;
+            background-color: lightyellow;
+            padding: 10px;
+            border: 2px solid black;
+            display: none; /* Initially hidden */
+        }
+
+        /* Position for answer labels next to the hitboxes */
+        .answer-label {
+            position: absolute;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            color: black;
+            background-color: white;
+            padding: 5px;
+            border: 1px solid black;
+            width: 70px; /* Make the label a bit wider to avoid text overflow */
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="movable-object" id="movable-object"></div>
+        <div class="hitbox" id="starter-hitbox"></div>
+        <div class="text-box" id="question-box">Where is Dr. Richie's office located?</div>
+        <div class="text-box" id="question-box2">Which answer is on your right?</div>
+    </div>
+
+    <script>
+        const movableObject = $('#movable-object');
+        const starterHitbox = $('#starter-hitbox');
+        const container = $('.container');
+        const questionBox = $('#question-box');
+        const questionBox2 = $('#question-box2');
+
+        let objectX = 0, objectY = 546; // Starting position of the movable object at the bottom-left corner
+        const moveSpeed = 10; // Speed of movement (increased for faster movement)
+
+        // Get the container dimensions for hitbox placement
+        const containerWidth = container.width();
+        const containerHeight = container.height();
+
+        // Set initial position of the movable object
+        movableObject.css({ top: objectY, left: objectX });
+
+        // Set the position of the starter hitbox to the center of the container
+        const hitboxX = (containerWidth / 2) - 25; // Center of the container (subtract half the width of the hitbox)
+        const hitboxY = (containerHeight / 2) - 25; // Center of the container (subtract half the height of the hitbox)
+        starterHitbox.css({ top: hitboxY, left: hitboxX });
+
+        // Event listener to handle arrow key movements
+        $(document).keydown(function (e) {
+            let moveParams = {};
+
+            switch (e.key) {
+                case 'ArrowUp':
+                    if (objectY > 0) objectY -= moveSpeed;
+                    break;
+                case 'ArrowDown':
+                    if (objectY < containerHeight - 30) objectY += moveSpeed;
+                    break;
+                case 'ArrowLeft':
+                    if (objectX > 0) objectX -= moveSpeed;
+                    break;
+                case 'ArrowRight':
+                    if (objectX < containerWidth - 30) objectX += moveSpeed;
+                    break;
+            }
+
+            // Animate the movement of the movable object using jQuery
+            movableObject.stop(true, true).animate({
+                top: objectY,
+                left: objectX
+            }, 20); // A very small duration (20ms) for smoother movement
+
+            // Check for collision with all hitboxes
+            checkCollisions();
+        });
+
+        // Function to check if two elements collide
+        function checkCollision(obj1, obj2) {
+            const obj1Rect = obj1.getBoundingClientRect();
+            const obj2Rect = obj2.getBoundingClientRect();
+
+            return !(obj1Rect.right < obj2Rect.left ||
+                obj1Rect.left > obj2Rect.right ||
+                obj1Rect.bottom < obj2Rect.top ||
+                obj1Rect.top > obj2Rect.bottom);
+        }
+
+        // Function to handle collisions with all hitboxes
+        function checkCollisions() {
+            // Check collision with the starter hitbox
+            if (checkCollision(movableObject[0], starterHitbox[0])) {
+                handleHitboxInteraction(starterHitbox[0], 'starter');
+            }
+
+            // Check collision with the corner hitboxes
+            $('.hitbox').each(function () {
+                const hitbox = $(this);
+                if (hitbox.hasClass('top-left-hitbox') && checkCollision(movableObject[0], hitbox[0])) {
+                    handleHitboxInteraction(hitbox[0], 'top-left');
+                }
+                if (hitbox.hasClass('top-right-hitbox') && checkCollision(movableObject[0], hitbox[0])) {
+                    handleHitboxInteraction(hitbox[0], 'top-right');
+                }
+                if (hitbox.hasClass('bottom-left-hitbox') && checkCollision(movableObject[0], hitbox[0])) {
+                    handleHitboxInteraction(hitbox[0], 'bottom-left');
+                }
+                if (hitbox.hasClass('bottom-right-hitbox') && checkCollision(movableObject[0], hitbox[0])) {
+                    handleHitboxInteraction(hitbox[0], 'bottom-right');
+                }
+            });
+        }
+
+        // Function to handle interaction with hitboxes
+        function handleHitboxInteraction(hitbox, type) {
+            if (type === 'starter') {
+                // Hide the starter hitbox
+                starterHitbox.hide();
+
+                // Create new hitboxes at the four corners of the container
+                createNewHitbox(0, 0, 'top-left'); // Top-left corner
+                createNewHitbox(containerWidth - 50, 0, 'top-right'); // Top-right corner
+                createNewHitbox(0, containerHeight - 50, 'bottom-left'); // Bottom-left corner
+                createNewHitbox(containerWidth - 50, containerHeight - 50, 'bottom-right'); // Bottom-right corner
+
+                // Show the first question
+                questionBox.show();
+            } else if (type === 'top-left') {
+                $(hitbox).addClass('green'); // Turn the top-left hitbox green
+                questionBox.text('Correct!'); // Change the textbox content
+
+                // Wait for a few seconds before resetting
+                setTimeout(function () {
+                    questionBox.hide();
+                    resetGame();
+                }, 2000);
+            } else {
+                $(hitbox).addClass('red'); // Turn the incorrect hitbox red
+                questionBox.text('Incorrect!'); // Change the textbox content
+                setTimeout(function () {
+                    questionBox.hide();
+                    resetGame();
+                }, 1000); // Wait for 1 seconds before resetting
+            }
+        }
+
+        // Function to create new hitboxes and labels
+        function createNewHitbox(x, y, type) {
+            const newHitbox = $('<div class="hitbox"></div>');
+            newHitbox.css({ top: y, left: x });
+
+            // Add specific type classes for styling
+            if (type === 'top-left') {
+                newHitbox.addClass('top-left-hitbox');
+                createAnswerLabel(x, y, 'Clyde A. Lynch 119-A'); // Create label for "Answer A"
+            } else if (type === 'top-right') {
+                newHitbox.addClass('top-right-hitbox');
+                createAnswerLabel(x, y, 'Clyde A. Lynch 119-B'); // Create label for "Answer B"
+            } else if (type === 'bottom-left') {
+                newHitbox.addClass('bottom-left-hitbox');
+                createAnswerLabel(x, y, 'Clyde A. Lynch 118-A'); // Create label for "Answer C"
+            } else if (type === 'bottom-right') {
+                newHitbox.addClass('bottom-right-hitbox');
+                createAnswerLabel(x, y, 'Clyde A. Lynch 118-B'); // Create label for "Answer D"
+            }
+
+            container.append(newHitbox);
+        }
+
+        // Function to create answer label next to the hitboxes
+        function createAnswerLabel(x, y, text) {
+            const label = $('<div class="answer-label"></div>').text(text);
+            label.css({
+                top: y + 12, // Position the label to the right of the hitbox
+                left: x + 55  // Adjust this value to place the label to the right of the hitbox
+            });
+
+            container.append(label);
+        }
+
+        // Function to reset the game
+        function resetGame() {
+            // Reset the movable object position to the middle of the screen
+            objectX = containerWidth / 2 - 15;
+            objectY = containerHeight / 2 - 15;
+            movableObject.css({ top: objectY, left: objectX });
+
+            // Remove all hitboxes except the starter hitbox
+            $('.hitbox').not('#starter-hitbox').remove();
+
+            // Show the starter hitbox again
+            starterHitbox.show();
+        }
+    </script>
+</body>
+</html>
